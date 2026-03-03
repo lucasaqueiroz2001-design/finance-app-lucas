@@ -1,12 +1,98 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Finance App</title>
+  <title>Finance App - Lucas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Finance App - Lucas</h1>
-  <button onclick="alert('Projeto iniciado!')">
-    Testar botão
-  </button>
+
+<h1>Finance App</h1>
+
+<div class="card">
+  <h3>Novo Lançamento</h3>
+  <select id="tipo">
+    <option value="receita">Receita</option>
+    <option value="despesa">Despesa</option>
+  </select>
+
+  <input type="number" id="valor" placeholder="Valor">
+
+  <select id="categoria">
+    <option value="barbearia">Barbearia</option>
+    <option value="pessoal">Pessoal</option>
+  </select>
+
+  <button onclick="salvar()">Salvar</button>
+</div>
+
+<div class="card">
+  <h3>Registros</h3>
+  <ul id="lista"></ul>
+</div>
+
+<script>
+  let registros = [];
+
+  function salvar() {
+    const tipo = document.getElementById("tipo").value;
+    const valor = document.getElementById("valor").value;
+    const categoria = document.getElementById("categoria").value;
+
+    if (!valor) return alert("Digite um valor");
+
+    const registro = {
+      tipo,
+      valor,
+      categoria
+    };
+
+    registros.push(registro);
+    atualizarLista();
+  }
+
+  function atualizarLista() {
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
+
+    registros.forEach(r => {
+      const item = document.createElement("li");
+      item.innerText = `${r.tipo} - R$${r.valor} (${r.categoria})`;
+      lista.appendChild(item);
+    });
+  }
+</script>
+
 </body>
 </html>

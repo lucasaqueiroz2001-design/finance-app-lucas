@@ -5,13 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: Arial;
-      padding: 20px;
-      background: #f4f4f4;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f1f3f6;
     }
 
-    h1 {
+    header {
+      background: black;
+      color: white;
+      padding: 15px;
       text-align: center;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .switch {
+      display: flex;
+      margin-bottom: 20px;
+    }
+
+    .switch button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .active {
+      background: black;
+      color: white;
+    }
+
+    .inactive {
+      background: #ddd;
     }
 
     .card {
@@ -28,71 +56,132 @@
       margin-top: 10px;
     }
 
-    button {
-      background: black;
-      color: white;
-      border: none;
-      border-radius: 5px;
-    }
+    .receita { color: green; }
+    .despesa { color: red; }
+
   </style>
 </head>
 <body>
 
-<h1>Finance App</h1>
+<header>
+  <h2>Finance App</h2>
+</header>
 
-<div class="card">
-  <h3>Novo Lançamento</h3>
-  <select id="tipo">
-    <option value="receita">Receita</option>
-    <option value="despesa">Despesa</option>
-  </select>
+<div class="container">
 
-  <input type="number" id="valor" placeholder="Valor">
+  <div class="switch">
+    <button id="btnBarbearia" onclick="trocarConta('barbearia')">Barbearia</button>
+    <button id="btnPessoal" onclick="trocarConta('pessoal')">Pessoal</button>
+  </div>
 
-  <select id="categoria">
-    <option value="barbearia">Barbearia</option>
-    <option value="pessoal">Pessoal</option>
-  </select>
+  <div class="card">
+    <h3>Dashboard</h3>
+    <p>Receitas: <span id="totalReceitas">R$ 0,00</span></p>
+    <p>Despesas: <span id="totalDespesas">R$ 0,00</span></p>
+    <p><strong>Saldo: <span id="saldo">R$ 0,00</span></strong></p>
+  </div>
 
-  <button onclick="salvar()">Salvar</button>
-</div>
+  <div class="card">
+    <h3>Novo Lançamento</h3>
 
-<div class="card">
-  <h3>Registros</h3>
-  <ul id="lista"></ul>
+    <select id="tipo">
+      <option value="receita">Receita</option>
+      <option value="despesa">Despesa</option>
+    </select>
+
+    <input type="number" id="valor" placeholder="Valor">
+
+    <select id="categoria">
+      <option value="servico">Serviço</option>
+      <option value="produto">Produto</option>
+      <option value="fixo">Fixo</option>
+      <option value="variavel">Variável</option>
+    </select>
+
+    <button onclick="salvar()">Salvar</button>
+  </div>
+
+  <div class="card">
+    <h3>Registros</h3>
+    <ul id="lista"></ul>
+  </div>
+
 </div>
 
 <script>
-  let registros = JSON.parse(localStorage.getItem("registros")) || [];
+  let contaAtual = "barbearia";
+
+  let registros = JSON.parse(localStorage.getItem("registros")) || {
+    barbearia: [],
+    pessoal: []
+  };
+
+  function formatarReal(valor) {
+    return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  function trocarConta(conta) {
+    contaAtual = conta;
+    atualizarBotoes();
+    atualizarLista();
+    atualizarDashboard();
+  }
+
+  function atualizarBotoes() {
+    document.getElementById("btnBarbearia").className =
+      contaAtual === "barbearia" ? "active" : "inactive";
+
+    document.getElementById("btnPessoal").className =
+      contaAtual === "pessoal" ? "active" : "inactive";
+  }
 
   function salvar() {
     const tipo = document.getElementById("tipo").value;
-    const valor = document.getElementById("valor").value;
+    const valor = parseFloat(document.getElementById("valor").value);
     const categoria = document.getElementById("categoria").value;
 
-    if (!valor) return alert("Digite um valor");
+    if (!valor) return alert("Digite um valor válido");
 
-    const registro = {
-      tipo,
-      valor,
-      categoria
-    };
+    const registro = { tipo, valor, categoria };
 
-    registros.push(registro);
+    registros[contaAtual].push(registro);
+
     localStorage.setItem("registros", JSON.stringify(registros));
+
     atualizarLista();
+    atualizarDashboard();
   }
 
   function atualizarLista() {
     const lista = document.getElementById("lista");
     lista.innerHTML = "";
 
-    registros.forEach(r => {
+    registros[contaAtual].forEach(r => {
       const item = document.createElement("li");
-      item.innerText = `${r.tipo} - R$${r.valor} (${r.categoria})`;
+      item.className = r.tipo;
+      item.innerText = `${r.tipo} - ${formatarReal(r.valor)} (${r.categoria})`;
       lista.appendChild(item);
     });
   }
 
+  function atualizarDashboard() {
+    let receitas = 0;
+    let despesas = 0;
+
+    registros[contaAtual].forEach(r => {
+      if (r.tipo === "receita") receitas += r.valor;
+      if (r.tipo === "despesa") despesas += r.valor;
+    });
+
+    document.getElementById("totalReceitas").innerText = formatarReal(receitas);
+    document.getElementById("totalDespesas").innerText = formatarReal(despesas);
+    document.getElementById("saldo").innerText = formatarReal(receitas - despesas);
+  }
+
+  atualizarBotoes();
   atualizarLista();
+  atualizarDashboard();
 </script>
+
+</body>
+</html>

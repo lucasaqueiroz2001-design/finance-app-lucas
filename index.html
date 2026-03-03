@@ -63,7 +63,7 @@
 </div>
 
 <script>
-  let registros = [];
+  let registros = JSON.parse(localStorage.getItem("registros")) || [];
 
   function salvar() {
     const tipo = document.getElementById("tipo").value;
@@ -79,6 +79,7 @@
     };
 
     registros.push(registro);
+    localStorage.setItem("registros", JSON.stringify(registros));
     atualizarLista();
   }
 
@@ -92,7 +93,6 @@
       lista.appendChild(item);
     });
   }
-</script>
 
-</body>
-</html>
+  atualizarLista();
+</script>

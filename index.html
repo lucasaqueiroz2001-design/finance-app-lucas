@@ -3,18 +3,14 @@
 <head>
   <title>Finance App - Lucas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body { font-family: Arial; margin: 0; background: #f1f3f6; }
-
     header { background: black; color: white; padding: 15px; text-align: center; }
-
     .container { padding: 20px; }
 
     .switch { display: flex; margin-bottom: 20px; }
-
     .switch button {
       flex: 1;
       padding: 10px;
@@ -55,13 +51,14 @@
       margin: 15px auto;
     }
 
-    .categoria-item {
+    .categoria-item, .registro-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 5px;
     }
 
+    .registro-item button,
     .categoria-item button {
       width: auto;
       margin-left: 5px;
@@ -70,7 +67,6 @@
 
     @media (min-width: 768px) {
       .container { max-width: 1000px; margin: auto; }
-
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -94,10 +90,8 @@
 
   <div class="grid">
 
-    <!-- Dashboard -->
     <div class="card">
       <h3>Dashboard</h3>
-
       <input type="month" id="filtroMes" onchange="atualizarTudo()">
 
       <p>Receitas: <span id="totalReceitas">R$ 0,00</span></p>
@@ -109,7 +103,6 @@
       </div>
     </div>
 
-    <!-- Novo Lançamento -->
     <div class="card">
       <h3>Novo Lançamento</h3>
 
@@ -119,9 +112,7 @@
       </select>
 
       <input type="date" id="data">
-
       <input type="number" id="valor" placeholder="Valor">
-
       <select id="categoria"></select>
 
       <button onclick="salvar()">Salvar</button>
@@ -129,204 +120,205 @@
 
   </div>
 
-  <!-- Gerenciar Categorias -->
   <div class="card">
     <h3>Categorias</h3>
-
     <input type="text" id="novaCategoria" placeholder="Nova categoria">
     <button onclick="adicionarCategoria()">Adicionar</button>
-
     <div id="listaCategorias"></div>
   </div>
 
-  <!-- Registros -->
   <div class="card">
     <h3>Registros</h3>
-    <ul id="lista"></ul>
+    <div id="lista"></div>
   </div>
 
 </div>
 
 <script>
 
-  let contaAtual = "barbearia";
+let contaAtual = "barbearia";
+let editandoIndex = null;
 
-  let registros = JSON.parse(localStorage.getItem("registros")) || {
-    barbearia: [],
-    pessoal: []
-  };
+let registros = JSON.parse(localStorage.getItem("registros")) || {
+  barbearia: [],
+  pessoal: []
+};
 
-  let categorias = JSON.parse(localStorage.getItem("categorias")) || {
-    barbearia: ["Serviço", "Produto", "Fixo"],
-    pessoal: ["Alimentação", "Lazer", "Contas"]
-  };
+let categorias = JSON.parse(localStorage.getItem("categorias")) || {
+  barbearia: ["Serviço", "Produto", "Fixo"],
+  pessoal: ["Alimentação", "Lazer", "Contas"]
+};
 
-  let grafico;
+let grafico;
 
-  function salvarStorage() {
-    localStorage.setItem("registros", JSON.stringify(registros));
-    localStorage.setItem("categorias", JSON.stringify(categorias));
-  }
+function salvarStorage() {
+  localStorage.setItem("registros", JSON.stringify(registros));
+  localStorage.setItem("categorias", JSON.stringify(categorias));
+}
 
-  function formatarReal(valor) {
-    return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  }
+function formatarReal(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
-  function definirDataHoje() {
-    document.getElementById("data").value =
-      new Date().toISOString().split("T")[0];
-  }
+function definirDataHoje() {
+  document.getElementById("data").value =
+    new Date().toISOString().split("T")[0];
+}
 
-  function trocarConta(conta) {
-    contaAtual = conta;
-    atualizarBotoes();
-    atualizarTudo();
-  }
-
-  function atualizarBotoes() {
-    btnBarbearia.className = contaAtual === "barbearia" ? "active" : "inactive";
-    btnPessoal.className = contaAtual === "pessoal" ? "active" : "inactive";
-  }
-
-  function atualizarSelectCategorias() {
-    const select = document.getElementById("categoria");
-    select.innerHTML = "";
-
-    categorias[contaAtual].forEach(cat => {
-      const option = document.createElement("option");
-      option.value = cat;
-      option.textContent = cat;
-      select.appendChild(option);
-    });
-  }
-
-  function adicionarCategoria() {
-    const nome = document.getElementById("novaCategoria").value.trim();
-    if (!nome) return;
-
-    categorias[contaAtual].push(nome);
-    salvarStorage();
-    document.getElementById("novaCategoria").value = "";
-    atualizarTudo();
-  }
-
-  function editarCategoria(index) {
-    const novoNome = prompt("Novo nome:");
-    if (!novoNome) return;
-
-    categorias[contaAtual][index] = novoNome;
-    salvarStorage();
-    atualizarTudo();
-  }
-
-  function excluirCategoria(index) {
-    if (!confirm("Excluir categoria?")) return;
-
-    categorias[contaAtual].splice(index, 1);
-    salvarStorage();
-    atualizarTudo();
-  }
-
-  function atualizarListaCategorias() {
-    const container = document.getElementById("listaCategorias");
-    container.innerHTML = "";
-
-    categorias[contaAtual].forEach((cat, index) => {
-      const div = document.createElement("div");
-      div.className = "categoria-item";
-
-      div.innerHTML = `
-        <span>${cat}</span>
-        <div>
-          <button onclick="editarCategoria(${index})">✏️</button>
-          <button onclick="excluirCategoria(${index})">🗑️</button>
-        </div>
-      `;
-
-      container.appendChild(div);
-    });
-  }
-
-  function salvar() {
-    const tipo = document.getElementById("tipo").value;
-    const valor = parseFloat(document.getElementById("valor").value);
-    const categoria = document.getElementById("categoria").value;
-    const data = document.getElementById("data").value;
-
-    if (!valor || !data) return alert("Preencha valor e data");
-
-    registros[contaAtual].push({ tipo, valor, categoria, data });
-
-    salvarStorage();
-    atualizarTudo();
-  }
-
-  function mesRegistro(data) {
-    return data.slice(0,7);
-  }
-
-  function atualizarDashboard() {
-
-    const mesSelecionado = document.getElementById("filtroMes").value;
-
-    let receitas = 0;
-    let despesas = 0;
-
-    registros[contaAtual].forEach(r => {
-
-      if (mesSelecionado && mesRegistro(r.data) !== mesSelecionado) return;
-
-      if (r.tipo === "receita") receitas += r.valor;
-      if (r.tipo === "despesa") despesas += r.valor;
-    });
-
-    totalReceitas.innerText = formatarReal(receitas);
-    totalDespesas.innerText = formatarReal(despesas);
-    saldo.innerText = formatarReal(receitas - despesas);
-
-    atualizarGrafico(receitas, despesas);
-  }
-
-  function atualizarLista() {
-
-    const mesSelecionado = document.getElementById("filtroMes").value;
-    lista.innerHTML = "";
-
-    registros[contaAtual].forEach(r => {
-
-      if (mesSelecionado && mesRegistro(r.data) !== mesSelecionado) return;
-
-      const li = document.createElement("li");
-      li.textContent =
-        `${r.data} - ${r.tipo} - ${formatarReal(r.valor)} (${r.categoria})`;
-
-      lista.appendChild(li);
-    });
-  }
-
-  function atualizarGrafico(receitas, despesas) {
-
-    if (grafico) grafico.destroy();
-
-    grafico = new Chart(document.getElementById("grafico"), {
-      type: "doughnut",
-      data: {
-        labels: ["Receitas", "Despesas"],
-        datasets: [{ data: [receitas, despesas] }]
-      }
-    });
-  }
-
-  function atualizarTudo() {
-    atualizarSelectCategorias();
-    atualizarListaCategorias();
-    atualizarDashboard();
-    atualizarLista();
-  }
-
+function trocarConta(conta) {
+  contaAtual = conta;
   atualizarBotoes();
-  definirDataHoje();
   atualizarTudo();
+}
+
+function atualizarBotoes() {
+  btnBarbearia.className = contaAtual === "barbearia" ? "active" : "inactive";
+  btnPessoal.className = contaAtual === "pessoal" ? "active" : "inactive";
+}
+
+function atualizarSelectCategorias() {
+  const select = document.getElementById("categoria");
+  select.innerHTML = "";
+  categorias[contaAtual].forEach(cat => {
+    const option = document.createElement("option");
+    option.value = cat;
+    option.textContent = cat;
+    select.appendChild(option);
+  });
+}
+
+function adicionarCategoria() {
+  const nome = novaCategoria.value.trim();
+  if (!nome) return;
+  categorias[contaAtual].push(nome);
+  salvarStorage();
+  novaCategoria.value = "";
+  atualizarTudo();
+}
+
+function salvar() {
+
+  const tipo = tipo.value;
+  const valorNum = parseFloat(valor.value);
+  const categoriaValor = categoria.value;
+  const dataValor = data.value;
+
+  if (!valorNum || !dataValor) return alert("Preencha valor e data");
+
+  const registro = {
+    tipo: tipo.value,
+    valor: valorNum,
+    categoria: categoriaValor,
+    data: dataValor
+  };
+
+  if (editandoIndex !== null) {
+    registros[contaAtual][editandoIndex] = registro;
+    editandoIndex = null;
+  } else {
+    registros[contaAtual].push(registro);
+  }
+
+  salvarStorage();
+  atualizarTudo();
+  limparFormulario();
+}
+
+function editarRegistro(index) {
+  const r = registros[contaAtual][index];
+
+  tipo.value = r.tipo;
+  valor.value = r.valor;
+  categoria.value = r.categoria;
+  data.value = r.data;
+
+  editandoIndex = index;
+}
+
+function excluirRegistro(index) {
+  if (!confirm("Excluir registro?")) return;
+  registros[contaAtual].splice(index, 1);
+  salvarStorage();
+  atualizarTudo();
+}
+
+function limparFormulario() {
+  valor.value = "";
+  definirDataHoje();
+}
+
+function mesRegistro(data) {
+  return data.slice(0,7);
+}
+
+function atualizarDashboard() {
+
+  const mesSelecionado = filtroMes.value;
+
+  let receitas = 0;
+  let despesas = 0;
+
+  registros[contaAtual].forEach(r => {
+
+    if (mesSelecionado && mesRegistro(r.data) !== mesSelecionado) return;
+
+    if (r.tipo === "receita") receitas += r.valor;
+    if (r.tipo === "despesa") despesas += r.valor;
+  });
+
+  totalReceitas.innerText = formatarReal(receitas);
+  totalDespesas.innerText = formatarReal(despesas);
+  saldo.innerText = formatarReal(receitas - despesas);
+
+  atualizarGrafico(receitas, despesas);
+}
+
+function atualizarLista() {
+
+  const mesSelecionado = filtroMes.value;
+  lista.innerHTML = "";
+
+  registros[contaAtual].forEach((r, index) => {
+
+    if (mesSelecionado && mesRegistro(r.data) !== mesSelecionado) return;
+
+    const div = document.createElement("div");
+    div.className = "registro-item";
+
+    div.innerHTML = `
+      <span>${r.data} - ${r.tipo} - ${formatarReal(r.valor)} (${r.categoria})</span>
+      <div>
+        <button onclick="editarRegistro(${index})">✏️</button>
+        <button onclick="excluirRegistro(${index})">🗑️</button>
+      </div>
+    `;
+
+    lista.appendChild(div);
+  });
+}
+
+function atualizarGrafico(receitas, despesas) {
+
+  if (grafico) grafico.destroy();
+
+  grafico = new Chart(document.getElementById("grafico"), {
+    type: "doughnut",
+    data: {
+      labels: ["Receitas", "Despesas"],
+      datasets: [{ data: [receitas, despesas] }]
+    }
+  });
+}
+
+function atualizarTudo() {
+  atualizarSelectCategorias();
+  atualizarDashboard();
+  atualizarLista();
+}
+
+atualizarBotoes();
+definirDataHoje();
+atualizarTudo();
 
 </script>
 

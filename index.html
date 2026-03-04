@@ -51,18 +51,18 @@
       margin: 15px auto;
     }
 
-    .categoria-item, .registro-item {
+    .registro-item, .categoria-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
     }
 
     .registro-item button,
     .categoria-item button {
       width: auto;
-      margin-left: 5px;
       padding: 5px 8px;
+      margin-left: 5px;
     }
 
     @media (min-width: 768px) {
@@ -122,8 +122,10 @@
 
   <div class="card">
     <h3>Categorias</h3>
+
     <input type="text" id="novaCategoria" placeholder="Nova categoria">
     <button onclick="adicionarCategoria()">Adicionar</button>
+
     <div id="listaCategorias"></div>
   </div>
 
@@ -172,13 +174,17 @@ function trocarConta(conta) {
 }
 
 function atualizarBotoes() {
-  btnBarbearia.className = contaAtual === "barbearia" ? "active" : "inactive";
-  btnPessoal.className = contaAtual === "pessoal" ? "active" : "inactive";
+  document.getElementById("btnBarbearia").className =
+    contaAtual === "barbearia" ? "active" : "inactive";
+
+  document.getElementById("btnPessoal").className =
+    contaAtual === "pessoal" ? "active" : "inactive";
 }
 
 function atualizarSelectCategorias() {
   const select = document.getElementById("categoria");
   select.innerHTML = "";
+
   categorias[contaAtual].forEach(cat => {
     const option = document.createElement("option");
     option.value = cat;
@@ -188,29 +194,42 @@ function atualizarSelectCategorias() {
 }
 
 function adicionarCategoria() {
-  const nome = novaCategoria.value.trim();
+  const nome = document.getElementById("novaCategoria").value.trim();
   if (!nome) return;
+
   categorias[contaAtual].push(nome);
   salvarStorage();
-  novaCategoria.value = "";
+  document.getElementById("novaCategoria").value = "";
+  atualizarTudo();
+}
+
+function editarCategoria(index) {
+  const novoNome = prompt("Novo nome da categoria:");
+  if (!novoNome) return;
+
+  categorias[contaAtual][index] = novoNome;
+  salvarStorage();
+  atualizarTudo();
+}
+
+function excluirCategoria(index) {
+  if (!confirm("Excluir categoria?")) return;
+
+  categorias[contaAtual].splice(index, 1);
+  salvarStorage();
   atualizarTudo();
 }
 
 function salvar() {
 
-  const tipo = tipo.value;
-  const valorNum = parseFloat(valor.value);
-  const categoriaValor = categoria.value;
-  const dataValor = data.value;
+  const tipo = document.getElementById("tipo").value;
+  const valor = parseFloat(document.getElementById("valor").value);
+  const categoria = document.getElementById("categoria").value;
+  const data = document.getElementById("data").value;
 
-  if (!valorNum || !dataValor) return alert("Preencha valor e data");
+  if (!valor || !data) return alert("Preencha valor e data");
 
-  const registro = {
-    tipo: tipo.value,
-    valor: valorNum,
-    categoria: categoriaValor,
-    data: dataValor
-  };
+  const registro = { tipo, valor, categoria, data };
 
   if (editandoIndex !== null) {
     registros[contaAtual][editandoIndex] = registro;
@@ -227,23 +246,24 @@ function salvar() {
 function editarRegistro(index) {
   const r = registros[contaAtual][index];
 
-  tipo.value = r.tipo;
-  valor.value = r.valor;
-  categoria.value = r.categoria;
-  data.value = r.data;
+  document.getElementById("tipo").value = r.tipo;
+  document.getElementById("valor").value = r.valor;
+  document.getElementById("categoria").value = r.categoria;
+  document.getElementById("data").value = r.data;
 
   editandoIndex = index;
 }
 
 function excluirRegistro(index) {
   if (!confirm("Excluir registro?")) return;
+
   registros[contaAtual].splice(index, 1);
   salvarStorage();
   atualizarTudo();
 }
 
 function limparFormulario() {
-  valor.value = "";
+  document.getElementById("valor").value = "";
   definirDataHoje();
 }
 
@@ -253,7 +273,7 @@ function mesRegistro(data) {
 
 function atualizarDashboard() {
 
-  const mesSelecionado = filtroMes.value;
+  const mesSelecionado = document.getElementById("filtroMes").value;
 
   let receitas = 0;
   let despesas = 0;
@@ -266,16 +286,17 @@ function atualizarDashboard() {
     if (r.tipo === "despesa") despesas += r.valor;
   });
 
-  totalReceitas.innerText = formatarReal(receitas);
-  totalDespesas.innerText = formatarReal(despesas);
-  saldo.innerText = formatarReal(receitas - despesas);
+  document.getElementById("totalReceitas").innerText = formatarReal(receitas);
+  document.getElementById("totalDespesas").innerText = formatarReal(despesas);
+  document.getElementById("saldo").innerText = formatarReal(receitas - despesas);
 
   atualizarGrafico(receitas, despesas);
 }
 
 function atualizarLista() {
 
-  const mesSelecionado = filtroMes.value;
+  const mesSelecionado = document.getElementById("filtroMes").value;
+  const lista = document.getElementById("lista");
   lista.innerHTML = "";
 
   registros[contaAtual].forEach((r, index) => {
@@ -297,6 +318,27 @@ function atualizarLista() {
   });
 }
 
+function atualizarListaCategorias() {
+  const container = document.getElementById("listaCategorias");
+  container.innerHTML = "";
+
+  categorias[contaAtual].forEach((cat, index) => {
+
+    const div = document.createElement("div");
+    div.className = "categoria-item";
+
+    div.innerHTML = `
+      <span>${cat}</span>
+      <div>
+        <button onclick="editarCategoria(${index})">✏️</button>
+        <button onclick="excluirCategoria(${index})">🗑️</button>
+      </div>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
 function atualizarGrafico(receitas, despesas) {
 
   if (grafico) grafico.destroy();
@@ -312,6 +354,7 @@ function atualizarGrafico(receitas, despesas) {
 
 function atualizarTudo() {
   atualizarSelectCategorias();
+  atualizarListaCategorias();
   atualizarDashboard();
   atualizarLista();
 }

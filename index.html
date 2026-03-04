@@ -139,7 +139,7 @@
 <script>
 
 let contaAtual = "barbearia";
-let editandoIndex = null;
+let editandoId = null;
 
 let registros = JSON.parse(localStorage.getItem("registros")) || {
   barbearia: [],
@@ -193,33 +193,6 @@ function atualizarSelectCategorias() {
   });
 }
 
-function adicionarCategoria() {
-  const nome = document.getElementById("novaCategoria").value.trim();
-  if (!nome) return;
-
-  categorias[contaAtual].push(nome);
-  salvarStorage();
-  document.getElementById("novaCategoria").value = "";
-  atualizarTudo();
-}
-
-function editarCategoria(index) {
-  const novoNome = prompt("Novo nome da categoria:");
-  if (!novoNome) return;
-
-  categorias[contaAtual][index] = novoNome;
-  salvarStorage();
-  atualizarTudo();
-}
-
-function excluirCategoria(index) {
-  if (!confirm("Excluir categoria?")) return;
-
-  categorias[contaAtual].splice(index, 1);
-  salvarStorage();
-  atualizarTudo();
-}
-
 function salvar() {
 
   const tipo = document.getElementById("tipo").value;
@@ -229,13 +202,26 @@ function salvar() {
 
   if (!valor || !data) return alert("Preencha valor e data");
 
-  const registro = { tipo, valor, categoria, data };
+  if (editandoId) {
 
-  if (editandoIndex !== null) {
-    registros[contaAtual][editandoIndex] = registro;
-    editandoIndex = null;
+    const registro = registros[contaAtual].find(r => r.id === editandoId);
+
+    registro.tipo = tipo;
+    registro.valor = valor;
+    registro.categoria = categoria;
+    registro.data = data;
+
+    editandoId = null;
+
   } else {
-    registros[contaAtual].push(registro);
+
+    registros[contaAtual].push({
+      id: Date.now(),
+      tipo,
+      valor,
+      categoria,
+      data
+    });
   }
 
   salvarStorage();
@@ -243,21 +229,25 @@ function salvar() {
   limparFormulario();
 }
 
-function editarRegistro(index) {
-  const r = registros[contaAtual][index];
+function editarRegistro(id) {
+
+  const r = registros[contaAtual].find(r => r.id === id);
 
   document.getElementById("tipo").value = r.tipo;
   document.getElementById("valor").value = r.valor;
   document.getElementById("categoria").value = r.categoria;
   document.getElementById("data").value = r.data;
 
-  editandoIndex = index;
+  editandoId = id;
 }
 
-function excluirRegistro(index) {
+function excluirRegistro(id) {
+
   if (!confirm("Excluir registro?")) return;
 
-  registros[contaAtual].splice(index, 1);
+  registros[contaAtual] =
+    registros[contaAtual].filter(r => r.id !== id);
+
   salvarStorage();
   atualizarTudo();
 }
@@ -299,7 +289,7 @@ function atualizarLista() {
   const lista = document.getElementById("lista");
   lista.innerHTML = "";
 
-  registros[contaAtual].forEach((r, index) => {
+  registros[contaAtual].forEach(r => {
 
     if (mesSelecionado && mesRegistro(r.data) !== mesSelecionado) return;
 
@@ -309,33 +299,12 @@ function atualizarLista() {
     div.innerHTML = `
       <span>${r.data} - ${r.tipo} - ${formatarReal(r.valor)} (${r.categoria})</span>
       <div>
-        <button onclick="editarRegistro(${index})">✏️</button>
-        <button onclick="excluirRegistro(${index})">🗑️</button>
+        <button onclick="editarRegistro(${r.id})">✏️</button>
+        <button onclick="excluirRegistro(${r.id})">🗑️</button>
       </div>
     `;
 
     lista.appendChild(div);
-  });
-}
-
-function atualizarListaCategorias() {
-  const container = document.getElementById("listaCategorias");
-  container.innerHTML = "";
-
-  categorias[contaAtual].forEach((cat, index) => {
-
-    const div = document.createElement("div");
-    div.className = "categoria-item";
-
-    div.innerHTML = `
-      <span>${cat}</span>
-      <div>
-        <button onclick="editarCategoria(${index})">✏️</button>
-        <button onclick="excluirCategoria(${index})">🗑️</button>
-      </div>
-    `;
-
-    container.appendChild(div);
   });
 }
 

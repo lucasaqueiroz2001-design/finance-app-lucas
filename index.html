@@ -139,7 +139,6 @@
 <script>
 
 let contaAtual = "barbearia";
-let editandoId = null;
 
 let registros = JSON.parse(localStorage.getItem("registros")) || {
   barbearia: [],
@@ -152,6 +151,7 @@ let categorias = JSON.parse(localStorage.getItem("categorias")) || {
 };
 
 let grafico;
+let editandoId = null;
 
 function salvarStorage() {
   localStorage.setItem("registros", JSON.stringify(registros));
@@ -181,18 +181,6 @@ function atualizarBotoes() {
     contaAtual === "pessoal" ? "active" : "inactive";
 }
 
-function atualizarSelectCategorias() {
-  const select = document.getElementById("categoria");
-  select.innerHTML = "";
-
-  categorias[contaAtual].forEach(cat => {
-    const option = document.createElement("option");
-    option.value = cat;
-    option.textContent = cat;
-    select.appendChild(option);
-  });
-}
-
 function salvar() {
 
   const tipo = document.getElementById("tipo").value;
@@ -202,47 +190,50 @@ function salvar() {
 
   if (!valor || !data) return alert("Preencha valor e data");
 
-  if (editandoId) {
-
-    const registro = registros[contaAtual].find(r => r.id === editandoId);
-
-    registro.tipo = tipo;
-    registro.valor = valor;
-    registro.categoria = categoria;
-    registro.data = data;
-
-    editandoId = null;
-
-  } else {
-
-    registros[contaAtual].push({
-      id: Date.now(),
-      tipo,
-      valor,
-      categoria,
-      data
-    });
-  }
+  registros[contaAtual].push({
+    id: Date.now(),
+    tipo,
+    valor,
+    categoria,
+    data
+  });
 
   salvarStorage();
   atualizarTudo();
-  limparFormulario();
+  document.getElementById("valor").value = "";
 }
 
-function editarRegistro(id) {
-
-  const r = registros[contaAtual].find(r => r.id === id);
-
-  document.getElementById("tipo").value = r.tipo;
-  document.getElementById("valor").value = r.valor;
-  document.getElementById("categoria").value = r.categoria;
-  document.getElementById("data").value = r.data;
-
+function editarRegistroInline(id) {
   editandoId = id;
+  atualizarLista();
+}
+
+function salvarEdicao(id) {
+
+  const tipo = document.getElementById(`editTipo-${id}`).value;
+  const valor = parseFloat(document.getElementById(`editValor-${id}`).value);
+  const categoria = document.getElementById(`editCategoria-${id}`).value;
+  const data = document.getElementById(`editData-${id}`).value;
+
+  const registro = registros[contaAtual].find(r => r.id === id);
+
+  registro.tipo = tipo;
+  registro.valor = valor;
+  registro.categoria = categoria;
+  registro.data = data;
+
+  editandoId = null;
+
+  salvarStorage();
+  atualizarTudo();
+}
+
+function cancelarEdicao() {
+  editandoId = null;
+  atualizarLista();
 }
 
 function excluirRegistro(id) {
-
   if (!confirm("Excluir registro?")) return;
 
   registros[contaAtual] =
@@ -250,11 +241,6 @@ function excluirRegistro(id) {
 
   salvarStorage();
   atualizarTudo();
-}
-
-function limparFormulario() {
-  document.getElementById("valor").value = "";
-  definirDataHoje();
 }
 
 function mesRegistro(data) {
@@ -296,13 +282,39 @@ function atualizarLista() {
     const div = document.createElement("div");
     div.className = "registro-item";
 
-    div.innerHTML = `
-      <span>${r.data} - ${r.tipo} - ${formatarReal(r.valor)} (${r.categoria})</span>
-      <div>
-        <button onclick="editarRegistro(${r.id})">✏️</button>
-        <button onclick="excluirRegistro(${r.id})">🗑️</button>
-      </div>
-    `;
+    if (editandoId === r.id) {
+
+      div.innerHTML = `
+        <div style="width:100%">
+          <select id="editTipo-${r.id}">
+            <option value="receita" ${r.tipo==="receita"?"selected":""}>Receita</option>
+            <option value="despesa" ${r.tipo==="despesa"?"selected":""}>Despesa</option>
+          </select>
+
+          <input type="date" id="editData-${r.id}" value="${r.data}">
+          <input type="number" id="editValor-${r.id}" value="${r.valor}">
+
+          <select id="editCategoria-${r.id}">
+            ${categorias[contaAtual].map(cat =>
+              `<option value="${cat}" ${r.categoria===cat?"selected":""}>${cat}</option>`
+            ).join("")}
+          </select>
+
+          <button onclick="salvarEdicao(${r.id})">Salvar</button>
+          <button onclick="cancelarEdicao()">Cancelar</button>
+        </div>
+      `;
+
+    } else {
+
+      div.innerHTML = `
+        <span>${r.data} - ${r.tipo} - ${formatarReal(r.valor)} (${r.categoria})</span>
+        <div>
+          <button onclick="editarRegistroInline(${r.id})">✏️</button>
+          <button onclick="excluirRegistro(${r.id})">🗑️</button>
+        </div>
+      `;
+    }
 
     lista.appendChild(div);
   });
@@ -322,8 +334,6 @@ function atualizarGrafico(receitas, despesas) {
 }
 
 function atualizarTudo() {
-  atualizarSelectCategorias();
-  atualizarListaCategorias();
   atualizarDashboard();
   atualizarLista();
 }
@@ -333,6 +343,5 @@ definirDataHoje();
 atualizarTudo();
 
 </script>
-
 </body>
 </html>

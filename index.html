@@ -3,6 +3,9 @@
 <head>
   <title>Finance App - Lucas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -58,7 +61,6 @@
 
     .receita { color: green; }
     .despesa { color: red; }
-
   </style>
 </head>
 <body>
@@ -76,9 +78,14 @@
 
   <div class="card">
     <h3>Dashboard</h3>
+
+    <input type="month" id="filtroMes" onchange="atualizarTudo()">
+
     <p>Receitas: <span id="totalReceitas">R$ 0,00</span></p>
     <p>Despesas: <span id="totalDespesas">R$ 0,00</span></p>
     <p><strong>Saldo: <span id="saldo">R$ 0,00</span></strong></p>
+
+    <canvas id="grafico"></canvas>
   </div>
 
   <div class="card">
@@ -88,6 +95,8 @@
       <option value="receita">Receita</option>
       <option value="despesa">Despesa</option>
     </select>
+
+    <input type="date" id="data">
 
     <input type="number" id="valor" placeholder="Valor">
 
@@ -109,6 +118,7 @@
 </div>
 
 <script>
+
   let contaAtual = "barbearia";
 
   let registros = JSON.parse(localStorage.getItem("registros")) || {
@@ -116,15 +126,21 @@
     pessoal: []
   };
 
+  let grafico;
+
   function formatarReal(valor) {
     return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  function definirDataHoje() {
+    const hoje = new Date().toISOString().split("T")[0];
+    document.getElementById("data").value = hoje;
   }
 
   function trocarConta(conta) {
     contaAtual = conta;
     atualizarBotoes();
-    atualizarLista();
-    atualizarDashboard();
+    atualizarTudo();
   }
 
   function atualizarBotoes() {
@@ -139,36 +155,34 @@
     const tipo = document.getElementById("tipo").value;
     const valor = parseFloat(document.getElementById("valor").value);
     const categoria = document.getElementById("categoria").value;
+    const data = document.getElementById("data").value;
 
-    if (!valor) return alert("Digite um valor válido");
+    if (!valor || !data) return alert("Preencha valor e data");
 
-    const registro = { tipo, valor, categoria };
+    const registro = { tipo, valor, categoria, data };
 
     registros[contaAtual].push(registro);
 
     localStorage.setItem("registros", JSON.stringify(registros));
 
-    atualizarLista();
-    atualizarDashboard();
+    atualizarTudo();
   }
 
-  function atualizarLista() {
-    const lista = document.getElementById("lista");
-    lista.innerHTML = "";
-
-    registros[contaAtual].forEach(r => {
-      const item = document.createElement("li");
-      item.className = r.tipo;
-      item.innerText = `${r.tipo} - ${formatarReal(r.valor)} (${r.categoria})`;
-      lista.appendChild(item);
-    });
+  function mesRegistro(data) {
+    return data.slice(0,7);
   }
 
   function atualizarDashboard() {
+
+    const mesSelecionado = document.getElementById("filtroMes").value;
+
     let receitas = 0;
     let despesas = 0;
 
     registros[contaAtual].forEach(r => {
+
+      if (mesSelecionado && mesRegistro(r.data) !== mesSelecionado) return;
+
       if (r.tipo === "receita") receitas += r.valor;
       if (r.tipo === "despesa") despesas += r.valor;
     });
@@ -176,11 +190,56 @@
     document.getElementById("totalReceitas").innerText = formatarReal(receitas);
     document.getElementById("totalDespesas").innerText = formatarReal(despesas);
     document.getElementById("saldo").innerText = formatarReal(receitas - despesas);
+
+    atualizarGrafico(receitas, despesas);
+  }
+
+  function atualizarLista() {
+
+    const mesSelecionado = document.getElementById("filtroMes").value;
+    const lista = document.getElementById("lista");
+
+    lista.innerHTML = "";
+
+    registros[contaAtual].forEach(r => {
+
+      if (mesSelecionado && mesRegistro(r.data) !== mesSelecionado) return;
+
+      const item = document.createElement("li");
+      item.className = r.tipo;
+      item.innerText =
+        `${r.data} - ${r.tipo} - ${formatarReal(r.valor)} (${r.categoria})`;
+
+      lista.appendChild(item);
+    });
+  }
+
+  function atualizarGrafico(receitas, despesas) {
+
+    const ctx = document.getElementById("grafico");
+
+    if (grafico) grafico.destroy();
+
+    grafico = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Receitas", "Despesas"],
+        datasets: [{
+          data: [receitas, despesas]
+        }]
+      }
+    });
+  }
+
+  function atualizarTudo() {
+    atualizarDashboard();
+    atualizarLista();
   }
 
   atualizarBotoes();
-  atualizarLista();
-  atualizarDashboard();
+  definirDataHoje();
+  atualizarTudo();
+
 </script>
 
 </body>
